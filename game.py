@@ -1,4 +1,5 @@
 import pygame, random
+import numpy as np
 
 bg = pygame.image.load("bg.png")
 
@@ -56,7 +57,10 @@ class Game():
     def make_move(self, direction):
         reward = 0
         prev_score = self.score
+        prev_max_tile = max([max(row) for row in self.board])
+        prev_empty_tiles = sum([row.count(0) for row in self.board])
         changed = False
+
         if direction == "up":
             changed = self.move_board_up()
         if direction == "down":
@@ -68,11 +72,23 @@ class Game():
         if changed: self.fill_board_random()
         pygame.display.set_caption(f"2048 | Score: {self.score}")
 
+        # reward part
+        new_max_tile = max([max(row) for row in self.board])
+        new_empty_tiles = sum([row.count(0) for row in self.board])
+
         reward = self.score - prev_score
-        if reward == 0 and not changed: reward -= 5
-        if not changed and self.last_unchanged: self.useless_moves += 1
-        reward -= self.useless_moves * 4
+
+        if new_max_tile > prev_max_tile: reward += 10 * (new_max_tile - prev_max_tile)
+        if new_empty_tiles < prev_empty_tiles: reward -= 2 * (prev_empty_tiles - new_empty_tiles)
+
+        if not changed: 
+            reward -= 10
+            if self.last_unchanged:
+                self.useless_moves += 1
+                reward -= self.useless_moves * 5
+
         self.last_unchanged = not changed
+        # ---
 
         self.print_board(direction)
         if self.lost():
@@ -195,6 +211,28 @@ class Game():
                 if col < len(self.board)-1 and self.board[row][col+1] == current: return True
         return False
 
+    def count_merge_possibilities(self):
+        count = 0
+        for row in range(len(self.board)):
+            for col in range(len(self.board)):
+                current = self.board[row][col]
+                if not current: continue
+                if row > 0 and self.board[row-1][col] == current: count += 1
+                if row < len(self.board)-1 and self.board[row+1][col] == current: count += 1
+                if col > 0 and self.board[row][col-1] == current: count += 1
+                if col < len(self.board)-1 and self.board[row][col+1] == current: count += 1
+        return count
+
+    def calculate_smoothness(self):
+       smoothness = 0
+       for i in range(4):
+           for j in range(4):
+               if j < 3:
+                   smoothness -= abs(self.board[i][j] - self.board[i][j+1])
+               if i < 3:
+                   smoothness -= abs(self.board[i][j] - self.board[i+1][j])
+       return smoothness
+
     def render_board(self, moves = [0, 0], games = 0):
         board_surf = pygame.Surface((self.board_size+4, self.board_size+4), pygame.SRCALPHA)
         board_surf.fill((255, 255, 255, 255))
@@ -221,7 +259,13 @@ class Game():
         return all([all(r) for r in self.board]) and not self.check_neighbours()
 
     def get_state(self):
-        return [tile for row in self.board for tile in row] + [self.useless_moves]
+        state = [tile for row in self.board for tile in row]
+        log_state = [np.log2(tile) if tile else 1 for tile in state]
+        empty_tiles = state.count(0)
+        max_tile = max(state)
+        merge_possibilities = self.count_merge_possibilities()
+        smoothness = self.calculate_smoothness()
+        return log_state + [empty_tiles, max_tile, merge_possibilities, smoothness, self.useless_moves]
 
     def run(self):
         while self.running:

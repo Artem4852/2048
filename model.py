@@ -2,11 +2,12 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
+from torch.optim.lr_scheduler import StepLR
 
 class DQN(nn.Module):
     def __init__(self):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(17, 256)
+        self.fc1 = nn.Linear(21, 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc3 = nn.Linear(256, 128)
         self.fc4 = nn.Linear(128, 64)
@@ -37,6 +38,7 @@ class DinoGamer:
     def __init__(self):
         self.model = DQN()
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        self.scheduler = StepLR(self.optimizer, step_size=1000, gamma=0.9)
         self.criterion = nn.MSELoss()
         self.epsilon = 0.9
         self.gamma = 0.9
@@ -67,3 +69,4 @@ class DinoGamer:
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        self.scheduler.step()
