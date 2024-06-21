@@ -47,6 +47,7 @@ class Game():
         print()
 
     def make_move(self, direction):
+        prev_score = self.score
         changed = False
         if direction == "up":
             changed = self.move_board_up()
@@ -58,8 +59,9 @@ class Game():
             changed = self.move_board_right()
         if changed: self.fill_board_random()
         pygame.display.set_caption(f"2048 | Score: {self.score}")
+        self.check_lost()
         self.print_board()
-        return changed
+        return self.get_state(), self.score - prev_score
 
     def move_board_up(self):
         old_board = [row.copy() for row in self.board]
@@ -197,8 +199,13 @@ class Game():
         self.screen.blit(board_surf, ((self.screen_size-self.board_size)/2-2, (self.screen_size-self.board_size)/2-2))
         pygame.display.flip()
     
-    def lost(self):
-        return all([all(r) for r in self.board]) and not self.check_neighbours()
+    def check_lost(self):
+        if all([all(r) for r in self.board]) and not self.check_neighbours():
+            print("Game Over")
+            self.running = False
+
+    def get_state(self):
+        return [tile for row in self.board for tile in row]
 
     def run(self):
         while self.running:
@@ -215,16 +222,7 @@ class Game():
             
             self.render_board()
 
-            if self.lost():
-                print("Game Over")
-                for _ in range(10):
-                    pygame.display.set_caption(f"2048 | Game Over | Score: {self.score}")
-                    pygame.display.flip()
-                    pygame.time.delay(200)
-                    pygame.display.set_caption(f"2048 | Score: {self.score}")
-                    pygame.display.flip()
-                    pygame.time.delay(200)
-                self.running = False
+            self.check_lost()
             
             clock.tick(60)
         
