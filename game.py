@@ -2,9 +2,6 @@ import pygame, random
 
 bg = pygame.image.load("bg.png")
 
-pygame.init()
-clock = pygame.time.Clock()
-font = pygame.font.Font(None, 36)
 
 colors = {
     2: (255, 161, 125, 255),
@@ -23,11 +20,15 @@ colors = {
 
 class Game():
     def __init__(self, screen_size = 600, board_size = 400, tile_size = 100, user_mode = True):
+        pygame.init()
         self.screen_size = screen_size 
         self.board_size = board_size
         self.tile_size = tile_size
 
         self.screen = pygame.display.set_mode((screen_size, screen_size))
+        self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 36)
+
         self.running = True
         self.score = 0
 
@@ -37,16 +38,20 @@ class Game():
 
     def restart(self):
         self.board = [[0 for _ in range(4)] for _ in range(4)]
+        self.fill_board_random()
         self.print_board()
+        self.render_board()
     
-    def print_board(self):
+    def print_board(self, move=None):
+        if move: print("Move:", move)
         for row in self.board:
             for tile in row:
-                print(tile if tile else "_", end=" ")
+                print(tile if tile else "_", end="  ")
             print()
         print()
 
     def make_move(self, direction):
+        reward = 0
         prev_score = self.score
         changed = False
         if direction == "up":
@@ -59,9 +64,13 @@ class Game():
             changed = self.move_board_right()
         if changed: self.fill_board_random()
         pygame.display.set_caption(f"2048 | Score: {self.score}")
-        self.check_lost()
-        self.print_board()
-        return self.get_state(), self.score - prev_score
+        reward = self.score - prev_score
+        if reward == 0 and not changed: reward = -5
+        self.print_board(direction)
+        if self.lost():
+            self.running = False
+            return self.get_state(), -100
+        return self.get_state(), reward
 
     def move_board_up(self):
         old_board = [row.copy() for row in self.board]
@@ -72,9 +81,9 @@ class Game():
                 above = [r[col] for r in self.board[:row]]
                 if not any(above):
                     self.board[0][col] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                     continue
-                closest = None
+                closest = 0
                 for i, tile in list(enumerate(above))[::-1]:
                     if tile:
                         closest = i
@@ -82,10 +91,10 @@ class Game():
                 if self.board[closest][col] == self.board[row][col]:
                     self.score += self.board[closest][col] * 2
                     self.board[closest][col] *= 2
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                 elif not self.board[closest+1][col]:
                     self.board[closest+1][col] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
         return old_board != self.board
 
     def move_board_down(self):
@@ -96,9 +105,9 @@ class Game():
                 below = [r[col] for r in self.board[row+1:]]
                 if not any(below):
                     self.board[-1][col] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                     continue
-                closest = None
+                closest = 0
                 for i, tile in enumerate(below):
                     if tile:
                         closest = i
@@ -106,10 +115,10 @@ class Game():
                 if self.board[row+closest+1][col] == self.board[row][col]:
                     self.score += self.board[row+closest+1][col] * 2
                     self.board[row+closest+1][col] *= 2
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                 elif not self.board[row+closest][col]:
                     self.board[row+closest][col] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
         return old_board != self.board
 
     def move_board_left(self):
@@ -121,9 +130,9 @@ class Game():
                 left = self.board[row][:col]
                 if not any(left):
                     self.board[row][0] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                     continue
-                closest = None
+                closest = 0
                 for i, tile in list(enumerate(left))[::-1]:
                     if tile:
                         closest = i
@@ -131,10 +140,10 @@ class Game():
                 if self.board[row][closest] == self.board[row][col]:
                     self.score += self.board[row][closest] * 2
                     self.board[row][closest] *= 2
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                 elif not self.board[row][closest+1]:
                     self.board[row][closest+1] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
         return old_board != self.board
 
     def move_board_right(self):
@@ -145,9 +154,9 @@ class Game():
                 right = self.board[row][col+1:]
                 if not any(right):
                     self.board[row][-1] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                     continue
-                closest = None
+                closest = 0
                 for i, tile in enumerate(right):
                     if tile:
                         closest = i
@@ -155,10 +164,10 @@ class Game():
                 if self.board[row][col+1+closest] == self.board[row][col]:
                     self.score += self.board[row][col+closest+1] * 2
                     self.board[row][col+closest+1] *= 2
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
                 elif not self.board[row][col+closest]:
                     self.board[row][col+closest] = self.board[row][col]
-                    self.board[row][col] = None
+                    self.board[row][col] = 0
         return old_board != self.board
 
     def fill_board_random(self):
@@ -178,7 +187,7 @@ class Game():
                 if col < len(self.board)-1 and self.board[row][col+1] == current: return True
         return False
 
-    def render_board(self):
+    def render_board(self, moves = [0, 0], games = 0):
         board_surf = pygame.Surface((self.board_size+4, self.board_size+4), pygame.SRCALPHA)
         board_surf.fill((255, 255, 255, 255))
         for row in range(len(self.board)):
@@ -189,7 +198,7 @@ class Game():
                     rect_width = self.tile_size - 4
                     rect_height = self.tile_size - 4
                     pygame.draw.rect(board_surf, colors[self.board[row][col]], (rect_x, rect_y, rect_width, rect_height))
-                    text_surf = font.render(str(self.board[row][col]), True, (255, 255, 255, 255))
+                    text_surf = self.font.render(str(self.board[row][col]), True, (255, 255, 255, 255))
                     text_x = rect_x + (rect_width - text_surf.get_width()) / 2
                     text_y = rect_y + (rect_height - text_surf.get_height()) / 2
                     board_surf.blit(text_surf, (text_x, text_y))
@@ -197,12 +206,11 @@ class Game():
         self.screen.fill((200, 200, 200))
         self.screen.blit(bg, (0, 0))
         self.screen.blit(board_surf, ((self.screen_size-self.board_size)/2-2, (self.screen_size-self.board_size)/2-2))
+        pygame.display.set_caption(f"2048 | Score: {self.score} | Games: {games} | Moves: {moves[0]}/{moves[1]}")
         pygame.display.flip()
     
-    def check_lost(self):
-        if all([all(r) for r in self.board]) and not self.check_neighbours():
-            print("Game Over")
-            self.running = False
+    def lost(self):
+        return all([all(r) for r in self.board]) and not self.check_neighbours()
 
     def get_state(self):
         return [tile for row in self.board for tile in row]
@@ -214,7 +222,7 @@ class Game():
                     self.running = False
                 if event.type == pygame.KEYDOWN:
                     pressed = event.key
-                    self.make_move("up" if pressed in [pygame.K_w, pygame.K_UP] else "down" if pressed in [pygame.K_s, pygame.K_DOWN] else "left" if pressed in [pygame.K_a, pygame.K_LEFT] else "right" if pressed in [pygame.K_d, pygame.K_RIGHT] else None)
+                    self.make_move("up" if pressed in [pygame.K_w, pygame.K_UP] else "down" if pressed in [pygame.K_s, pygame.K_DOWN] else "left" if pressed in [pygame.K_a, pygame.K_LEFT] else "right" if pressed in [pygame.K_d, pygame.K_RIGHT] else 0)
                 pygame.display.set_caption(f"2048 | Score: {self.score}")
             
             if not any([any(r) for r in self.board]):
@@ -222,8 +230,10 @@ class Game():
             
             self.render_board()
 
-            self.check_lost()
+            if self.lost():
+                print("Game Over")
+                self.running = False
             
-            clock.tick(60)
+            self.clock.tick(60)
         
         pygame.quit()
