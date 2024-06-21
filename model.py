@@ -6,16 +6,32 @@ import numpy as np
 class DQN(nn.Module):
     def __init__(self):
         super(DQN, self).__init__()
-        self.fc1 = nn.Linear(16, 64)
+        self.fc1 = nn.Linear(17, 256)
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 128)
+        self.fc4 = nn.Linear(128, 64)
+        self.fc5 = nn.Linear(64, 4)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, 4)
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
         x = self.relu(self.fc1(x))
+        x = self.dropout(x)
         x = self.relu(self.fc2(x))
-        x = self.fc3(x)
+        x = self.dropout(x)
+        x = self.relu(self.fc3(x))
+        x = self.dropout(x)
+        x = self.relu(self.fc4(x))
+        x = self.fc5(x)
         return x
+    
+    def save_model(self, filename):
+        with open(filename, "wb") as f:
+            torch.save(self.state_dict(), f)
+
+    def load_model(self, filename):
+        with open(filename, "rb") as f:
+            self.load_state_dict(torch.load(f))
     
 class DinoGamer:
     def __init__(self):
@@ -26,7 +42,7 @@ class DinoGamer:
         self.gamma = 0.9
 
     def select_action(self, state):
-        self.epsilon *= 0.999
+        self.epsilon *= 0.9999
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, 3), True
         else:

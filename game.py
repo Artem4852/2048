@@ -30,17 +30,20 @@ class Game():
         self.font = pygame.font.Font(None, 36)
 
         self.running = True
-        self.score = 0
 
         self.user_mode = user_mode
 
         self.restart()
 
     def restart(self):
+        self.score = 0
         self.board = [[0 for _ in range(4)] for _ in range(4)]
         self.fill_board_random()
         self.print_board()
         self.render_board()
+
+        self.useless_moves = 0
+        self.last_unchanged = False
     
     def print_board(self, move=None):
         if move: print("Move:", move)
@@ -64,8 +67,13 @@ class Game():
             changed = self.move_board_right()
         if changed: self.fill_board_random()
         pygame.display.set_caption(f"2048 | Score: {self.score}")
+
         reward = self.score - prev_score
-        if reward == 0 and not changed: reward = -5
+        if reward == 0 and not changed: reward -= 5
+        if not changed and self.last_unchanged: self.useless_moves += 1
+        reward -= self.useless_moves * 4
+        self.last_unchanged = not changed
+
         self.print_board(direction)
         if self.lost():
             self.running = False
@@ -213,7 +221,7 @@ class Game():
         return all([all(r) for r in self.board]) and not self.check_neighbours()
 
     def get_state(self):
-        return [tile for row in self.board for tile in row]
+        return [tile for row in self.board for tile in row] + [self.useless_moves]
 
     def run(self):
         while self.running:

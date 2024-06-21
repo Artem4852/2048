@@ -1,18 +1,23 @@
 from game import Game
 from model import DinoGamer
-import time, pygame
+import time, pygame, json
 
 actions = ["up", "down", "left", "right"]
 
 agent = DinoGamer()
+load_model = False
+
+with open("stats.json", "r") as f: stats = json.load(f)
+
+if load_model: agent.model.load_model("model.pth")
+
+else:
+    stats["games"] = 0
+    stats["moves"] = [0, 0]
 
 time.sleep(1)
 
-games = 0
-
 quit_train = False
-
-moves = [0, 0]
 
 while not quit_train:
     game = Game(user_mode=False)
@@ -22,10 +27,13 @@ while not quit_train:
                 quit_train = True
         state = game.get_state()
         action, random_choice = agent.select_action(state)
-        moves[0 if random_choice else 1] += 1
+        stats["moves"][0 if random_choice else 1] += 1
         next_state, reward = game.make_move(actions[action])
-        game.render_board(moves, games)
-        game.clock.tick(120)
+        game.render_board(stats["moves"], stats["games"])
+        game.clock.tick(100)
         agent.train(state, action, reward, next_state, not game.running)
-    games += 1
+    if stats["games"] % 10 == 0: agent.model.save_model(f"model.pth")
+    stats["games"] += 1
+    stats["max_score"] = game.score if game.score > stats["max_score"] else stats["max_score"]
+    with open("stats.json", "w") as f: json.dump(stats, f)
     pygame.quit()
