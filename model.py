@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from torch.optim.lr_scheduler import StepLR
+from collections import deque
+import random
 
 class DQN(nn.Module):
     def __init__(self):
@@ -42,6 +44,13 @@ class DinoGamer:
         self.criterion = nn.MSELoss()
         self.epsilon = 0.9
         self.gamma = 0.9
+        self.memory = deque(maxlen=10000)
+        self.batch_size = 64
+
+        self.target_model = DQN()
+        self.target_model.load_state_dict(self.model.state_dict())
+        self.target_update_frequency = 1000
+        self.steps = 0
 
     def select_action(self, state):
         self.epsilon *= 0.9999
@@ -54,19 +63,31 @@ class DinoGamer:
                 q_values = self.model(state)
                 return q_values.max(1)[1].item(), False
             
-    def train(self, state, action, reward, next_state, done):
-        state = torch.tensor(state, dtype=torch.float).unsqueeze(0)
-        next_state = torch.tensor(next_state, dtype=torch.float).unsqueeze(0)
-        action = torch.tensor([action], dtype=torch.long)
-        reward = torch.tensor([reward], dtype=torch.float)
+    def remember(self, state, action, reward, next_state, done):
+        self.memory.append((state, action, reward, next_state, done))
 
-        current_q = self.model(state).gather(1, action.unsqueeze(1)).squeeze(1)
-        next_q = self.model(next_state).max(1)[0].detach()
-        expected_q = reward + (self.gamma * next_q * (1 - int(done)))
+    def replay(self):
+        if len(self.memory) < self.batch_size:
+            return
+        
+        batch = random.sample(self.memory, self.batch_size)
+        states, actions, rewards, next_states, dones = zip(*batch)
+        states = torch.tensor(states, dtype=torch.float)
+        actions = torch.tensor(actions, dtype=torch.long)
+        rewards = torch.tensor(rewards, dtype=torch.float)
+        next_states = torch.tensor(next_states, dtype=torch.float)
+        dones = torch.tensor(dones, dtype=torch.float)
+
+        current_q = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
+        next_q = self.model(next_states).max(1)[0].detach()
+        expected_q = rewards + (self.gamma * next_q * (1 - dones))
 
         loss = self.criterion(current_q, expected_q)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        self.scheduler.step()
+            
+    def train(self, state, action, reward, next_state, done):
+        self.remember(state, action, reward, next_state, done)
+        self.replay()

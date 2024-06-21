@@ -5,7 +5,7 @@ import time, pygame, json
 actions = ["up", "down", "left", "right"]
 
 agent = DinoGamer()
-load_model = False
+load_model = True
 
 with open("stats.json", "r") as f: stats = json.load(f)
 
@@ -14,6 +14,9 @@ if load_model: agent.model.load_model("model.pth")
 else:
     stats["games"] = 0
     stats["moves"] = [0, 0]
+    stats["epsilon"] = agent.epsilon
+
+agent.epsilon = stats["epsilon"]
 
 time.sleep(1)
 
