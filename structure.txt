@@ -6,7 +6,7 @@ ai for it:
 ai made with PyTorch
 
 Steps:
-1) Create the game
-2) Create the training algorithm
-3) Train the ai
-4) Test + imporve the ai
+1) Create the game                  | Done
+2) Create the training algorithm    | 
+3) Train the ai                     |
+4) Test + imporve the ai            |
