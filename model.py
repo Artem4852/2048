@@ -43,8 +43,10 @@ class DinoGamer:
         self.scheduler = StepLR(self.optimizer, step_size=1000, gamma=0.9)
         self.criterion = nn.MSELoss()
         self.epsilon = 0.9
-        self.gamma = 0.9
-        self.memory = deque(maxlen=10000)
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.9995
+        self.gamma = 0.99
+        self.memory = deque(maxlen=100000)
         self.batch_size = 64
 
         self.target_model = DQN()
@@ -53,7 +55,6 @@ class DinoGamer:
         self.steps = 0
 
     def select_action(self, state):
-        self.epsilon *= 0.9999
         if np.random.rand() < self.epsilon:
             return np.random.randint(0, 3), True
         else:
@@ -72,22 +73,40 @@ class DinoGamer:
         
         batch = random.sample(self.memory, self.batch_size)
         states, actions, rewards, next_states, dones = zip(*batch)
+
         states = torch.tensor(states, dtype=torch.float)
         actions = torch.tensor(actions, dtype=torch.long)
         rewards = torch.tensor(rewards, dtype=torch.float)
         next_states = torch.tensor(next_states, dtype=torch.float)
         dones = torch.tensor(dones, dtype=torch.float)
 
+        next_actions = self.model(next_states).max(1)[1].unsqueeze(1)
+        next_q = self.target_model(next_states).gather(1, next_actions).squeeze(1)
+        expected_q = rewards + (self.gamma * next_q * (1 - dones)).detach()
+
         current_q = self.model(states).gather(1, actions.unsqueeze(1)).squeeze(1)
-        next_q = self.model(next_states).max(1)[0].detach()
-        expected_q = rewards + (self.gamma * next_q * (1 - dones))
 
         loss = self.criterion(current_q, expected_q)
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        self.scheduler.step()
+
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
             
     def train(self, state, action, reward, next_state, done):
         self.remember(state, action, reward, next_state, done)
         self.replay()
+
+        self.steps += 1
+        if self.steps % self.target_update_frequency == 0:
+            self.target_model.load_state_dict(self.model.state_dict())
+
+    def save_model(self, filename):
+        self.model.save_model(filename)
+    
+    def load_model(self, filename):
+        self.model.load_model(filename)
+        self.target_model.load_state_dict(self.model.state_dict())
