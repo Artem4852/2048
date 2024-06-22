@@ -13,6 +13,12 @@ The 2048 AI Game consists of several components:
 
 The AI agent learns to play the game by repeatedly playing and improving its strategy based on the rewards it receives.
 
+## Sneak peek at the UI
+
+![2048 Game UI](ui.png)
+
+The game features a stylish user interface with a unique twist on the classic 2048 design. The background stickers used in the UI are courtesy of the [Hack Club](https://hackclub.com/stickers/).
+
 ## File Structure
 
 - `game.py`: Contains the `Game` class that implements the 2048 game logic and rendering.
