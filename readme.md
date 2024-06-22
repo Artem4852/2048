@@ -17,7 +17,7 @@ The AI agent learns to play the game by repeatedly playing and improving its str
 
 ![2048 Game UI](ui.png)
 
-The game features a stylish user interface with a unique twist on the classic 2048 design. The background stickers used in the UI are courtesy of the [Hack Club](https://hackclub.com/stickers/).
+Cool background stickers used in the UI are taken from the [Hack Club website](https://hackclub.com/stickers/).
 
 ## File Structure
 
