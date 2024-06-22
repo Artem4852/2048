@@ -57,6 +57,7 @@ class Game():
     def make_move(self, direction):
         reward = 0
         prev_score = self.score
+        prev_top_left_score = self.calculate_top_left_reward()
         prev_max_tile = max([max(row) for row in self.board])
         prev_empty_tiles = sum([row.count(0) for row in self.board])
         changed = False
@@ -73,10 +74,14 @@ class Game():
         pygame.display.set_caption(f"2048 | Score: {self.score}")
 
         # reward part
+        new_top_left_score = self.calculate_top_left_reward()
         new_max_tile = max([max(row) for row in self.board])
         new_empty_tiles = sum([row.count(0) for row in self.board])
 
         reward = self.score - prev_score
+
+        top_left_improvement = new_top_left_score - prev_top_left_score
+        reward += top_left_improvement * 10
 
         if new_max_tile > prev_max_tile: reward += 10 * (new_max_tile - prev_max_tile)
         if new_empty_tiles < prev_empty_tiles: reward -= 2 * (prev_empty_tiles - new_empty_tiles)
@@ -233,7 +238,19 @@ class Game():
                    smoothness -= abs(self.board[i][j] - self.board[i+1][j])
        return smoothness
 
-    def render_board(self, moves = [0, 0], games = 0):
+    def calculate_top_left_reward(self):
+        reward = 0
+        max_reward = sum([16 ** (4-i) for i in range(4)])  
+
+        for row in range(4):
+            for col in range(4):
+                if self.board[row][col] == 0: continue
+                distance = row+col
+                value = np.log2(self.board[row][col])
+                reward += value * (16 ** (3 - distance))
+        return reward / max_reward * 100
+
+    def render_board(self, moves = [0, 0], games = 0, reward = 0):
         board_surf = pygame.Surface((self.board_size+4, self.board_size+4), pygame.SRCALPHA)
         board_surf.fill((255, 255, 255, 255))
         for row in range(len(self.board)):
@@ -252,7 +269,7 @@ class Game():
         self.screen.fill((200, 200, 200))
         self.screen.blit(bg, (0, 0))
         self.screen.blit(board_surf, ((self.screen_size-self.board_size)/2-2, (self.screen_size-self.board_size)/2-2))
-        pygame.display.set_caption(f"2048 | Score: {self.score} | Games: {games} | Moves: {moves[0]}/{moves[1]}")
+        pygame.display.set_caption(f"2048 | Score: {self.score} | Games: {games} | Moves: {moves[0]}/{moves[1]} | Reward: {reward}")
         pygame.display.flip()
     
     def lost(self):
