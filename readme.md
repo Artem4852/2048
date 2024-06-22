@@ -57,11 +57,19 @@ To train the AI agent, run:
 python controller.py
 ```
 
-This will start the training process. The agent will play multiple games, learning and improving its strategy over time. Training progress and statistics will be displayed on the screen.
+This will start the training process. The agent will play multiple games, learning and improving its strategy over time. Training progress and statistics will be displayed in the title of the window.
 
-If you have done some training and want to continue from that point, set `load_model` to True in the file `controller.py` on line 8.
+### Having AI play the game
 
-### Playing as a Human
+Repo includes some pretrained weights. To see AI playing ensure that `training` is set to True in the file `controller.py` on line 5.
+
+Then, run:
+
+```
+python controller.py
+```
+
+### Playing yourself
 
 To play the game yourself, run:
 
