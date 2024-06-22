@@ -57,11 +57,13 @@ To train the AI agent, run:
 python controller.py
 ```
 
+If you want to override trained weights, ensure that `training` is set to True in the file `controller.py` on line 5.
+
 This will start the training process. The agent will play multiple games, learning and improving its strategy over time. Training progress and statistics will be displayed in the title of the window.
 
 ### Having AI play the game
 
-Repo includes some pretrained weights. To see AI playing ensure that `training` is set to True in the file `controller.py` on line 5.
+Repo includes some pretrained weights. To see AI playing ensure that `training` is set to False in the file `controller.py` on line 5.
 
 Then, run:
 
@@ -101,4 +103,4 @@ You can adjust various parameters in the `model.py` and `controller.py` files to
 
 ## License
 
-This project is open source and available under the [MIT License](LICENSE).
+This project is open source and available under the MIT License.
