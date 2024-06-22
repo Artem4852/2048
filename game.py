@@ -1,4 +1,4 @@
-import pygame, random
+import pygame, random, time
 import numpy as np
 
 bg = pygame.image.load("bg.png")
@@ -301,6 +301,7 @@ class Game():
 
             if self.lost():
                 print("Game Over")
+                time.sleep(2)
                 self.running = False
             
             self.clock.tick(60)

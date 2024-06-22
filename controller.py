@@ -5,7 +5,7 @@ import time, pygame, json
 actions = ["up", "down", "left", "right"]
 
 agent = DinoGamer()
-load_model = True
+load_model = False
 
 with open("stats.json", "r") as f: stats = json.load(f)
 
